@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>J.A.R.V.I.S.</title>
+<style>
+:root{--bg:#02080d;--panel:rgba(8,40,56,.35);--line:rgba(80,220,255,.35);--c:#5fe3ff;--c2:#b8f4ff;--dim:#4b8fa3;--accent2:#ad8aff;--warn:#ffb347;--text:#cdeffa;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root[data-mode="red"]{--bg:#0d0203;--panel:rgba(56,10,10,.35);--line:rgba(255,120,80,.4);--c:#ff6a4d;--c2:#ffd2c4;--dim:#a35a4b;--text:#fadbd2}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:radial-gradient(ellipse at 50% 45%,#06222f 0,var(--bg) 70%);color:var(--text);font:14px/1.45 "Rajdhani","Segoe UI",system-ui,sans-serif;overflow:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;opacity:.18;background-image:linear-gradient(rgba(80,220,255,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(80,220,255,.12) 1px,transparent 1px);background-size:36px 36px;mask-image:radial-gradient(ellipse at center,#000 5%,transparent 82%)}
+
+#app{height:100%;display:grid;grid-template-columns:minmax(220px,1fr) minmax(300px,1.5fr) minmax(220px,1fr);grid-template-rows:auto 1fr auto;gap:12px;padding:12px}
+header{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:8px}
+h1{margin:0;font-size:22px;letter-spacing:.5em;font-weight:600;color:var(--c2);text-shadow:0 0 12px var(--c)}
+#clock{font-size:20px;color:var(--c);font-variant-numeric:tabular-nums}
+.panel{border:1px solid var(--line);background:var(--panel);padding:10px 12px;position:relative;min-height:0;overflow:auto;contain:layout paint}
+header{position:relative;border-bottom-color:rgba(95,227,255,.24);padding:4px 8px 12px}header::after{content:"";position:absolute;bottom:-1px;left:0;width:110px;height:2px;background:linear-gradient(90deg,var(--c),transparent);box-shadow:0 0 12px var(--c)}
+h1{text-shadow:0 0 8px rgba(95,227,255,.55),0 0 28px rgba(95,227,255,.18)}
+#clock{padding:5px 12px;border:1px solid rgba(95,227,255,.2);border-radius:6px;background:rgba(4,22,32,.72);box-shadow:inset 0 0 18px rgba(95,227,255,.05);font-size:15px;letter-spacing:.12em}
+.panel{border-radius:10px;border-color:rgba(95,227,255,.25);background:linear-gradient(145deg,rgba(10,40,55,.72),rgba(3,13,20,.88));box-shadow:0 12px 30px rgba(0,0,0,.28),inset 0 1px rgba(255,255,255,.035);backdrop-filter:blur(8px);transition:border-color .2s,box-shadow .2s}
+.panel:hover{border-color:rgba(95,227,255,.48);box-shadow:0 14px 34px rgba(0,0,0,.34),0 0 18px rgba(95,227,255,.06),inset 0 1px rgba(255,255,255,.05)}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:-2px 0 10px;padding-bottom:8px;border-bottom:1px solid rgba(95,227,255,.12)}
+.panel-head h2{display:flex;align-items:center;gap:9px;margin:0;font-size:12px;letter-spacing:.16em;text-transform:uppercase}
+.panel-icon{width:19px;height:19px;fill:none;stroke:var(--c);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 4px rgba(95,227,255,.5))}
+.shield-icon{stroke:var(--accent2,#ae8aff)}
+.fold-btn{width:28px;height:26px;padding:4px;display:grid;place-items:center;border-radius:5px;background:rgba(95,227,255,.06);border-color:rgba(95,227,255,.2)}
+.fold-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;transition:transform .18s}.fold-btn[aria-expanded="false"] svg{transform:rotate(180deg)}
+.panel-content[hidden]{display:none}.panel.collapsed{flex:0 0 auto!important;min-height:0!important;height:auto!important;padding-bottom:8px}
+.draggable-panel.dragged{position:fixed!important;z-index:50;margin:0;max-height:calc(100vh - 16px);overflow:auto;box-shadow:0 18px 46px rgba(0,0,0,.6),0 0 24px rgba(95,227,255,.14)}
+.drag-handle{cursor:grab;touch-action:none;user-select:none}.drag-handle:active{cursor:grabbing}.drag-mark{display:inline-flex;align-items:center;justify-content:center;margin-left:auto;color:var(--dim);font-size:14px;line-height:1;cursor:grab;padding:0 5px}.drag-handle:hover .drag-mark{color:var(--c);text-shadow:0 0 8px var(--c)}
+.bar{height:6px;border-radius:8px;overflow:hidden;background:rgba(95,227,255,.09)}.bar i{border-radius:8px;box-shadow:0 0 10px var(--c),0 0 20px rgba(95,227,255,.24)}
+button{border-radius:5px;background:linear-gradient(180deg,rgba(19,65,82,.55),rgba(5,28,39,.65));transition:transform .16s,border-color .16s,box-shadow .16s,background .16s}
+button:hover,button:focus-visible{box-shadow:0 0 14px rgba(95,227,255,.12);transform:translateY(-1px)}
+#center{position:relative}#center::before,#center::after{content:"";width:32px;height:32px;position:absolute;pointer-events:none;border-color:rgba(95,227,255,.35);border-style:solid}#center::before{left:8%;top:8%;border-width:1px 0 0 1px}#center::after{right:8%;bottom:8%;border-width:0 1px 1px 0}
+#state{padding:4px 12px;border:1px solid rgba(95,227,255,.18);border-radius:20px;background:rgba(4,21,30,.7);font-size:11px;letter-spacing:.22em}
+.panel h2{margin:0 0 8px;font-size:13px;font-weight:600;color:var(--c);letter-spacing:.12em}
+.col{display:flex;flex-direction:column;gap:12px;min-height:0}
+.col .panel{flex:1}
+.m{margin:0 0 9px}.m div{display:flex;justify-content:space-between;color:var(--dim);font-size:12px}.m b{color:var(--c2);font-weight:500}
+.bar{height:5px;background:rgba(95,227,255,.12);margin-top:3px}.bar i{display:block;height:100%;width:50%;background:var(--c);box-shadow:0 0 8px var(--c);transition:width .8s}
+.bar.w i{background:var(--warn);box-shadow:0 0 8px var(--warn)}
+#center{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:0;gap:6px}
+canvas{width:100%;max-width:520px;aspect-ratio:1;flex:0 1 auto;min-height:0}
+ #pointer-aura{position:fixed;left:0;top:0;width:190px;height:190px;margin:-95px 0 0 -95px;border-radius:50%;pointer-events:none;z-index:9998;opacity:0;background:radial-gradient(circle,rgba(95,227,255,.16) 0,rgba(95,227,255,.08) 22%,rgba(95,227,255,.025) 48%,transparent 72%);filter:blur(2px);mix-blend-mode:screen;transition:opacity .18s ease;will-change:transform}
+ .click-glow{position:fixed;left:0;top:0;width:28px;height:28px;margin:-14px 0 0 -14px;border:1px solid rgba(137,244,255,.68);border-radius:50%;pointer-events:none;z-index:9999;mix-blend-mode:screen;animation:clickPulse .52s ease-out forwards}
+ .click-glow::before,.click-glow::after{content:"";position:absolute;inset:0;border:1px solid rgba(95,227,255,.48);border-radius:50%;box-shadow:0 0 8px rgba(95,227,255,.38),inset 0 0 5px rgba(95,227,255,.16)}
+ .click-glow::after{inset:6px;border-color:rgba(215,253,255,.62);box-shadow:0 0 9px rgba(95,227,255,.42);animation:clickCore .38s ease-out forwards}
+ @keyframes clickPulse{0%{transform:scale(.55);opacity:.72;box-shadow:0 0 12px rgba(95,227,255,.5)}100%{transform:scale(2.8);opacity:0;box-shadow:0 0 2px rgba(95,227,255,0)}}
+ @keyframes clickCore{0%{transform:scale(.45);opacity:.68}100%{transform:scale(1.8);opacity:0}}
+#cv{cursor:pointer}#cv:focus-visible{outline:2px solid var(--c);outline-offset:4px;border-radius:50%;filter:drop-shadow(0 0 12px var(--c))}
+ @media(hover:hover) and (pointer:fine){#pointer-aura{opacity:.72}}
+ @media(prefers-reduced-motion:reduce){.click-glow,.click-glow::after{animation:none;opacity:.25}#pointer-aura{transition:none}}
+#state{color:var(--c);letter-spacing:.3em;font-size:13px;min-height:20px;text-shadow:0 0 8px var(--c)}
+#log{display:flex;flex-direction:column;gap:7px;font-size:13px}
+.u{color:var(--dim)}.u::before{content:"You: "}
+.j{color:var(--c2)}.j::before{content:"J.A.R.V.I.S.: ";color:var(--c)}
+.sys{color:var(--warn);font-size:12px}
+.mod{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dashed rgba(95,227,255,.15);font-size:13px}
+.mod span:last-child{color:var(--c)}
+.mod .off{color:var(--warn)}.mod .on{color:#70f0a0}
+footer{grid-column:1/-1;display:flex;gap:8px;align-items:center}
+.qpanel{position:relative;left:auto;top:auto;right:auto;bottom:auto;transform:none;z-index:auto;width:100%;min-height:0;margin-top:10px;border:1px solid var(--c);border-radius:6px;background:#04131b;box-shadow:0 6px 18px rgba(0,0,0,.35);padding:12px}.qpanel[hidden]{display:none}.qhead{display:flex;align-items:center;justify-content:space-between;color:var(--c);letter-spacing:.1em;margin-bottom:8px}.qhead button{padding:3px 9px}.qrow{display:flex;gap:7px}.qrow #in{min-width:0;flex:1;background:var(--panel);border:1px solid var(--line);color:var(--c2);padding:10px 12px;font:inherit;font-size:15px;outline:none}.qrow #send{flex:none;padding:9px 13px}
+#in:focus{border-color:var(--c);box-shadow:0 0 12px var(--line)}
+button{background:var(--panel);border:1px solid var(--line);color:var(--c);padding:11px 16px;font:inherit;font-size:14px;cursor:pointer}
+button:hover,button:focus-visible{border-color:var(--c);background:rgba(95,227,255,.15);outline:none}
+button.on{background:var(--c);color:var(--bg)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.chips button{padding:4px 9px;font-size:12px}
+#timers div{color:var(--warn);font-variant-numeric:tabular-nums}
+#vwrap{position:relative;aspect-ratio:4/3;background:#000;border:1px solid var(--line);overflow:hidden}#vid{width:100%;height:100%;object-fit:contain;display:none}#ov{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none}#vph{position:absolute;inset:0;display:grid;place-items:center;color:var(--dim);font-size:13px}#sweep{display:none!important}
+.vr{margin:7px 0;font-size:13px;color:var(--c2)}.vr.person{display:flex;align-items:center;justify-content:space-between;gap:8px}.vr.person button{flex:none;padding:4px 8px;font-size:11px}.vr b{display:block;color:var(--c);font-weight:600;letter-spacing:.08em;font-size:12px}.vr.w,.vr.w b{color:var(--warn)}.tag{display:inline-block;border:1px solid var(--line);padding:1px 7px;margin:2px 4px 0 0;font-size:12px}.hint{font-size:11px;color:var(--dim);margin-top:5px}
+dialog{background:#06161f;color:var(--text);border:1px solid var(--c);max-width:420px;max-height:calc(100vh - 32px);overflow:auto;padding:16px}dialog::backdrop{background:rgba(0,0,0,.7)}dialog h2{margin:0 0 6px;color:var(--c);font-size:16px}dialog p{font-size:12px;color:var(--dim);margin:6px 0}dialog label{display:block;margin:10px 0;font-size:13px}dialog input,dialog select,dialog textarea{width:100%;margin-top:4px;background:var(--panel);border:1px solid var(--line);color:var(--c2);padding:8px;font:inherit}dialog textarea{resize:vertical;min-height:70px}dialog label span{display:block;color:var(--dim);font-size:11px;margin:4px 0}dialog label button{padding:6px 9px;font-size:12px}
+#cap{position:absolute;left:8px;right:8px;bottom:8px;background:rgba(0,0,0,.65);padding:6px 10px;font-size:14px;color:var(--c2);display:none}.camfull #cap:not(:empty){display:block}
+.camfull #vpanel{position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 56px);bottom:calc(env(safe-area-inset-bottom,0px) + 70px);z-index:5;display:flex;flex-direction:column;background:rgba(2,8,13,.94)}
+.camfull #vwrap{flex:1;min-height:0;aspect-ratio:auto!important}.camfull #lres,.camfull #vres{max-height:16vh;overflow:auto;flex:none}
+.wbar{display:flex;justify-content:space-between;align-items:center;margin:-10px -12px 8px;padding:4px 4px 4px 12px;border-bottom:1px solid var(--line);background:rgba(95,227,255,.08)}.wt{font-size:13px;font-weight:600;color:var(--c);letter-spacing:.12em}
+.wbtns{display:flex}.wbtns button{width:36px;height:26px;padding:0;border:0;background:transparent;display:grid;place-items:center;color:var(--c)}.wbtns button:hover{background:rgba(95,227,255,.2)}#wcls:hover{background:#e5484d;color:#fff}
+#app:not(.camon) #vpanel .wbtns{visibility:hidden}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--c);box-shadow:0 0 8px var(--c)}
+.chatfull #chatpanel{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 60px);bottom:calc(env(safe-area-inset-bottom,0px) + 70px);transform:translateX(-50%);width:min(680px,calc(100vw - 24px));height:auto;z-index:15;display:flex;flex-direction:column;background:rgba(2,8,13,.96);box-shadow:0 14px 40px rgba(0,0,0,.65)}.chatfull #chatpanel #log{flex:1;min-height:0;overflow:auto}.chatmin #chattab{display:flex;align-items:center;gap:8px}.chatmin #chatpanel{position:fixed;left:0;bottom:0;width:2px;height:2px;padding:0;border:0;opacity:0;overflow:hidden;pointer-events:none;z-index:-1}.chatfull #chattab{display:none}#chattab{display:none;position:fixed;left:120px;bottom:calc(env(safe-area-inset-bottom,0px) + 70px);z-index:16}.chatfull .wbtns{visibility:visible}.chatfull #chmax{background:rgba(95,227,255,.2)}
+#camtab{display:none;position:fixed;left:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 70px);z-index:6}.cammin #camtab{display:flex;align-items:center;gap:8px}
+.cammin #vpanel{position:fixed;left:0;bottom:0;width:2px;height:2px;padding:0;border:0;opacity:0;overflow:hidden;pointer-events:none;z-index:-1}
+@keyframes wopen{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}.camfull #vpanel,.chatfull #chatpanel{animation:wopen .22s ease-out}
+@media(prefers-reduced-motion:reduce){.camfull #vpanel,.chatfull #chatpanel{animation:none}}
+ #mobileArrange{display:none}
+ @media(max-width:860px){body{overflow:auto}#app{height:auto;min-height:100%;display:flex;flex-direction:column;gap:12px;padding:12px;padding-bottom:20px}header{order:-2}#center{order:-1}.col{width:100%}.col .panel{min-height:200px}.col .panel.collapsed{min-height:0!important}footer{order:5;flex-wrap:wrap;background:var(--bg);padding:8px 0;align-items:center}footer #qopen{flex:1}#mobileArrange{display:inline-flex}h1{letter-spacing:.3em;font-size:18px}.qpanel{width:100%;min-height:0;padding:12px}}
+@media(prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style></head>
+<body><div id="app">
+<header><h1>J.A.R.V.I.S.</h1><div id="clock">--:--:--</div></header>
+
+<div class="col">
+ <div class="panel foldable draggable-panel" id="diagPanel"><div class="panel-head drag-handle" id="diagDrag" title="Drag to move; double-click to reset"><h2><svg class="panel-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.2-6 4.2 12 2.2-6H21"/></svg>Core diagnostics</h2><span class="drag-mark" aria-hidden="true">⠿</span><button class="fold-btn" id="diagFold" type="button" aria-label="Collapse core diagnostics" aria-expanded="true" title="Collapse panel"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 10 5-5 5 5"/></svg></button></div><div class="panel-content" id="diagContent"><div id="diag"></div></div></div>
+ <div class="panel foldable draggable-panel" id="statusPanel"><div class="panel-head drag-handle" id="statusDrag" title="Drag to move; double-click to reset"><h2><svg class="panel-icon shield-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8 20 6v5.2c0 5-3.3 8.2-8 10-4.7-1.8-8-5-8-10V6l8-3.2Z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg>Suit status</h2><span class="drag-mark" aria-hidden="true">⠿</span><button class="fold-btn" id="statusFold" type="button" aria-label="Collapse suit status" aria-expanded="true" title="Collapse panel"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 10 5-5 5 5"/></svg></button></div><div class="panel-content" id="statusContent"><div id="mods"></div><div class="mod" id="apiStatus"><span>API connection</span><span id="apiState" class="off">OFFLINE</span></div><div id="timers"></div></div></div>
+</div>
+
+<div id="center"><canvas id="cv" width="560" height="560" role="button" tabindex="0" title="Activate J.A.R.V.I.S." aria-label="Activate J.A.R.V.I.S. from the arc reactor"></canvas><div id="state">STANDING BY</div></div>
+
+<div class="col">
+ <div class="panel" id="vpanel" style="flex:none"><div class="wbar"><span class="wt">Visual recognition</span><span class="wbtns"><button id="wmin" title="Minimize" aria-label="Minimize"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M1 5h8" stroke="currentColor" stroke-width="1.2" fill="none"/></svg></button><button id="wmax" title="Maximize" aria-label="Maximize"><svg width="10" height="10" viewBox="0 0 10 10"><rect x="1.5" y="1.5" width="7" height="7" stroke="currentColor" stroke-width="1.2" fill="none"/></svg></button><button id="wcls" title="Close camera" aria-label="Close camera"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" stroke-width="1.2" fill="none"/></svg></button></span></div><div id="vwrap"><video id="vid" autoplay playsinline muted></video><canvas id="ov"></canvas><div id="cap"></div><div id="sweep"></div><div id="vph">Camera offline</div></div><div class="chips"><button id="cam">Camera on</button><button id="flip">Flip</button><button id="look">Analyze once</button><button id="live">Live scan off</button><button id="lloc">Local scan</button><button id="enr">Enroll face</button><button id="fclr">Delete faces</button></div><div class="hint">Live scan checks locally every 5 seconds and sends a smaller frame to the AI only after a major visual change. With Local scan on, it also includes a brief anonymous detection summary. Face matching stays on this device. Choose “This is me” beside your face to save your profile. When the camera is on, each chat message includes one small still image for the selected AI model.</div><div id="liveStatus" class="hint">Live scan is off.</div><div id="lres"></div><div id="vres"></div></div>
+ <div class="panel" id="chatpanel" style="flex:2"><div class="wbar"><span class="wt">Conversation</span><span class="wbtns"><button id="chmin" type="button" title="Minimize chat" aria-label="Minimize chat"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M1 5h8" stroke="currentColor" stroke-width="1.2" fill="none"/></svg></button><button id="chmax" type="button" title="Pop out chat" aria-label="Pop out chat"><svg width="10" height="10" viewBox="0 0 10 10"><rect x="1.5" y="1.5" width="7" height="7" stroke="currentColor" stroke-width="1.2" fill="none"/></svg></button><button id="chhide" type="button" title="Hide chat" aria-label="Hide chat"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" stroke-width="1.2" fill="none"/></svg></button></span></div><div id="log" aria-live="polite"></div><section id="qpanel" class="qpanel" role="dialog" aria-label="Ask J.A.R.V.I.S." hidden><div class="qhead"><span>ASK J.A.R.V.I.S.</span><button id="qclose" type="button" aria-label="Close question box" title="Close">×</button></div><div class="qrow"><input id="in" placeholder="Type a question or command…" autocomplete="off"><button id="send" type="button">Send</button></div></section></div>
+ <div class="panel foldable draggable-panel" id="tipsPanel"><div class="panel-head drag-handle" id="tipsDrag" title="Drag to move; double-click to reset"><h2><svg class="panel-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="8" cy="6" r="1"/><circle cx="16" cy="12" r="1"/><circle cx="10" cy="18" r="1"/></svg>Try saying</h2><span class="drag-mark" aria-hidden="true">⠿</span><button class="fold-btn" id="tipsFold" type="button" aria-label="Collapse try saying" aria-expanded="true" title="Collapse panel"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 10 5-5 5 5"/></svg></button></div><div class="panel-content" id="tipsContent"><div class="chips" id="chips"></div></div></div>
+</div>
+
+<button id="camtab"><span class="dot"></span>Camera</button><button id="chattab" type="button"><span class="dot"></span>Conversation</button><footer><button id="mic" title="Voice input">Mic</button><button id="qopen" aria-controls="qpanel" aria-expanded="false">Ask a question</button><button id="mobileArrange" type="button" aria-pressed="false">Arrange panels: Off</button><button id="mute" title="Toggle voice replies">Voice on</button><button id="cfg" type="button" title="API key and model" aria-controls="dlg">Settings</button></footer>
+</div>
+
+
+<dialog id="dlg"><h2>Settings</h2><p>Used when this page runs outside Claude. Inside Claude, vision and chat work without a key.</p><label>Provider<select id="prov"><option value="anthropic">Anthropic (Claude)</option><option value="openai">OpenAI-compatible (OpenAI, OpenRouter, Groq, Ollama, LM Studio)</option><option value="gemini">Google Gemini</option></select></label><label id="baselbl">Base URL<input id="base"></label><label>API key<input id="key" type="password" autocomplete="off" placeholder="sk-ant-…"></label><label>Chat model<input id="mdl" placeholder="claude-sonnet-5-5"></label><label>Camera / vision model (optional)<input id="vmdl" placeholder="Leave blank to use the chat model"><span id="visionHint">Image requests switch to this model automatically. Leave blank to use the chat model.</span><button id="vsuggest" type="button">Use suggested vision model</button></label><label>Rate-limit fallback models<textarea id="fmodels" rows="4" spellcheck="false" placeholder="One model ID per line"></textarea><span id="fallbackHint">On a rate limit, tries each model in order. For camera requests, use models that accept images.</span><button id="fsuggest" type="button">Use suggested free vision list</button></label><p>The key is stored only in this browser and sent only to the provider you choose. Use a key you can revoke, and don’t put this page on a public site with a key saved.</p><div class="chips"><button id="ksave">Save</button><button id="kclear">Clear key</button><button id="kclose">Close</button></div></dialog>
+<script>
+const $=id=>document.getElementById(id),log=$('log');
+ const pointerAura=document.createElement('div');pointerAura.id='pointer-aura';pointerAura.setAttribute('aria-hidden','true');document.body.appendChild(pointerAura);let auraFrame=0,auraX=0,auraY=0;
+ addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;auraX=e.clientX;auraY=e.clientY;if(!auraFrame)auraFrame=requestAnimationFrame(()=>{pointerAura.style.transform=`translate3d(${auraX}px,${auraY}px,0)`;auraFrame=0})},{passive:true});
+ addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')pointerAura.style.opacity='0'},{passive:true});
+ addEventListener('pointerenter',e=>{if(e.pointerType==='mouse')pointerAura.style.opacity='';},{passive:true});
+ function showClickGlow(e){if(e.button!==0&&e.pointerType!=='touch')return;const g=document.createElement('span');g.className='click-glow';g.style.left=e.clientX+'px';g.style.top=e.clientY+'px';document.body.appendChild(g);g.addEventListener('animationend',()=>g.remove(),{once:true});setTimeout(()=>g.remove(),900)}
+ addEventListener('pointerdown',showClickGlow,{passive:true});
+function setupFold(panelId,contentId,buttonId,storageKey,label){const panel=$(panelId),content=$(contentId),button=$(buttonId);const apply=collapsed=>{content.hidden=collapsed;panel.classList.toggle('collapsed',collapsed);button.setAttribute('aria-expanded',String(!collapsed));button.setAttribute('aria-label',(collapsed?'Expand ':'Collapse ')+label);button.title=collapsed?'Expand panel':'Collapse panel';try{localStorage.setItem(storageKey,collapsed?'1':'0')}catch(e){}};let start=false;try{start=localStorage.getItem(storageKey)==='1'}catch(e){}button.addEventListener('click',()=>apply(!panel.classList.contains('collapsed')));apply(start)}
+setupFold('diagPanel','diagContent','diagFold','jv_fold_diag','core diagnostics');setupFold('statusPanel','statusContent','statusFold','jv_fold_status','suit status');
+setupFold('tipsPanel','tipsContent','tipsFold','jv_fold_tips','try saying');
+ let dragLayer=60,mobilePanelDragEnabled=false;const panelDragResetters=[];const mobileLayoutQuery=matchMedia('(max-width:860px)');
+ function enablePanelDrag(panelId,handleId,storageKey){const panel=$(panelId),handle=$(handleId);let start=null;const clamp=(v,min,max)=>Math.max(min,Math.min(v,Math.max(min,max)));const save=()=>{try{localStorage.setItem(storageKey,JSON.stringify({left:parseFloat(panel.style.left)||0,top:parseFloat(panel.style.top)||0,width:panel.offsetWidth}))}catch(e){}};const reset=()=>{panel.classList.remove('dragged');panel.style.removeProperty('left');panel.style.removeProperty('top');panel.style.removeProperty('width');panel.style.removeProperty('z-index');try{localStorage.removeItem(storageKey)}catch(e){}};panelDragResetters.push(reset);try{if(!mobileLayoutQuery.matches){const pos=JSON.parse(localStorage.getItem(storageKey)||'null');if(pos&&Number.isFinite(pos.left)&&Number.isFinite(pos.top)){const w=Math.min(pos.width||panel.offsetWidth,window.innerWidth-16);panel.classList.add('dragged');panel.style.width=w+'px';panel.style.left=clamp(pos.left,8,window.innerWidth-w-8)+'px';panel.style.top=clamp(pos.top,8,window.innerHeight-72)+'px';panel.style.zIndex=String(++dragLayer)}}}catch(e){}handle.addEventListener('pointerdown',e=>{if((mobileLayoutQuery.matches&&!mobilePanelDragEnabled)||e.button!==0||e.target.closest('button'))return;const r=panel.getBoundingClientRect();start={x:e.clientX,y:e.clientY,left:r.left,top:r.top,width:r.width,moved:false};panel.style.zIndex=String(++dragLayer);try{handle.setPointerCapture(e.pointerId)}catch(_){} });handle.addEventListener('pointermove',e=>{if(!start)return;const dx=e.clientX-start.x,dy=e.clientY-start.y;if(!start.moved&&Math.hypot(dx,dy)<5)return;if(!start.moved){start.moved=true;panel.classList.add('dragged');panel.style.width=Math.min(start.width,window.innerWidth-16)+'px'}panel.style.left=clamp(start.left+dx,8,window.innerWidth-panel.offsetWidth-8)+'px';panel.style.top=clamp(start.top+dy,8,window.innerHeight-56)+'px'});const finish=e=>{if(!start)return;if(start.moved)save();try{if(handle.hasPointerCapture(e.pointerId))handle.releasePointerCapture(e.pointerId)}catch(_){}start=null};handle.addEventListener('pointerup',finish);handle.addEventListener('pointercancel',finish);handle.addEventListener('dblclick',e=>{if(!e.target.closest('button'))reset()})}
+enablePanelDrag('diagPanel','diagDrag','jv_pos_diag');enablePanelDrag('statusPanel','statusDrag','jv_pos_status');enablePanelDrag('tipsPanel','tipsDrag','jv_pos_tips');
+ $('mobileArrange').addEventListener('click',()=>{mobilePanelDragEnabled=!mobilePanelDragEnabled;$('mobileArrange').setAttribute('aria-pressed',String(mobilePanelDragEnabled));$('mobileArrange').textContent='Arrange panels: '+(mobilePanelDragEnabled?'On':'Off');$('mobileArrange').title=mobilePanelDragEnabled?'Drag panel headers to move them. Turn off to restore the normal layout.':'Turn on to move panels';if(!mobilePanelDragEnabled)panelDragResetters.forEach(reset=>reset())});
+let energy=0,target=0,mode='idle',voiceOn=true,speed=1,askMic=false;
+
+/* ---------- clock ---------- */
+setInterval(()=>$('clock').textContent=new Date().toLocaleTimeString([], {hour12:false}),500);
+
+/* ---------- diagnostics ---------- */
+const diagItems=[['Arc reactor output',()=>94+Math.random()*5,'%'],['Repulsor charge',()=>80+Math.random()*15,'%'],['Neural net load',()=>20+Math.random()*50,'%'],['Thermal margin',()=>60+Math.random()*30,'%'],['Uplink strength',()=>70+Math.random()*28,'%'],['Flight stability',()=>88+Math.random()*10,'%']];
+const diag=$('diag');
+diagItems.forEach(([n],i)=>{diag.insertAdjacentHTML('beforeend',`<div class="m"><div><span>${n}</span><b id="dv${i}"></b></div><div class="bar" id="db${i}"><i></i></div></div>`)});
+function tick(){diagItems.forEach(([n,f,u],i)=>{const v=f();$('dv'+i).textContent=v.toFixed(1)+u;const b=$('db'+i);b.firstChild.style.width=v+'%';b.classList.toggle('w',n==='Neural net load'&&v>60)})}
+tick();setInterval(tick,2500);
+
+/* ---------- suit modules ---------- */
+const mods={'Repulsors':1,'Flight systems':1,'Targeting':1,'Life support':1,'HUD overlay':1,'Stealth mode':0};
+function drawMods(){$('mods').innerHTML=Object.entries(mods).map(([k,v])=>`<div class="mod"><span>${k}</span><span class="${v?'':'off'}">${v?'ONLINE':'OFFLINE'}</span></div>`).join('')}
+drawMods();
+
+/* ---------- voice ---------- */
+const synth=window.speechSynthesis;let voice=null;
+function pickVoice(){const v=synth&&synth.getVoices()||[];voice=v.find(x=>/en-GB/.test(x.lang)&&/male|daniel|google uk english male/i.test(x.name))||v.find(x=>/en-GB/.test(x.lang))||v.find(x=>/^en/.test(x.lang))||null}
+if(synth){pickVoice();synth.onvoiceschanged=pickVoice}
+function say(t){
+  const d=document.createElement('div');d.className='j';d.textContent=t;log.appendChild(d);log.scrollTop=log.scrollHeight;$('cap').textContent=t;clearTimeout(window._ct);window._ct=setTimeout(()=>{$('cap').textContent=''},9000);
+  if(!voiceOn||!synth){askMic=false;return}const am=askMic;askMic=false;synth.cancel();
+  const u=new SpeechSynthesisUtterance(t);if(voice)u.voice=voice;u.rate=1;u.pitch=.85;
+  u.onstart=()=>setMode('speaking');u.onend=()=>{setMode('idle');if(am)listenNow()};u.onerror=()=>setMode('idle');synth.speak(u);
+}
+function sys(t){const d=document.createElement('div');d.className='sys';d.textContent=t;log.appendChild(d);log.scrollTop=log.scrollHeight}
+function setMode(m){mode=m;$('state').textContent={idle:'STANDING BY',listening:'LISTENING',speaking:'RESPONDING',alert:'ALERT'}[m]||'';target={idle:.15,listening:.7,speaking:.9,alert:1}[m]}
+setMode('idle');
+
+/* ---------- speech recognition ---------- */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null,listening=false,micStarting=false,micStream=null;
+async function startListening(){
+  if(!rec||listening||micStarting)return;
+  micStarting=true;
+  try{
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('Microphone access needs a secure page. Open this app through localhost or HTTPS.');
+    if(!micStream)micStream=await navigator.mediaDevices.getUserMedia({audio:true});
+    micStream.getAudioTracks().forEach(t=>t.enabled=true);
+    synth&&synth.cancel();rec.start();listening=true;$('mic').classList.add('on');setMode('listening');
+  }catch(e){
+    pauseMic();
+    sys('Microphone unavailable: '+(e&&e.name==='NotAllowedError'?'allow microphone access for this page in browser settings, then try again.':(e&&e.message)||'check your microphone and browser permissions.'));
+  }finally{micStarting=false}
+}
+function pauseMic(){if(micStream)micStream.getAudioTracks().forEach(t=>t.enabled=false)}
+function releaseMic(){if(micStream)micStream.getTracks().forEach(t=>t.stop());micStream=null}
+addEventListener('pagehide',releaseMic);
+if(SR){rec=new SR();rec.lang='en-US';rec.interimResults=false;
+  rec.onresult=e=>{const t=e.results[0][0].transcript;handle(t)};
+  rec.onend=()=>{listening=false;$('mic').classList.remove('on');pauseMic();if(mode==='listening')setMode('idle')};
+  rec.onerror=e=>{pauseMic();sys('Microphone error: '+e.error+'. Check browser permission or type your command.')}}
+$('mic').onclick=()=>{
+  if(!rec){sys('Voice input is not supported in this browser. Type your command instead.');return}
+  if(listening){rec.stop();return}
+  startListening();
+};
+$('mute').onclick=()=>{voiceOn=!voiceOn;$('mute').textContent=voiceOn?'Voice on':'Voice off';if(!voiceOn&&synth)synth.cancel()};
+
+/* ---------- timers ---------- */
+const timers=[];
+function addTimer(sec,label){timers.push({end:Date.now()+sec*1000,label});}
+setInterval(()=>{
+  const now=Date.now();
+  for(let i=timers.length-1;i>=0;i--)if(timers[i].end<=now){say(`Sir, your ${timers[i].label} timer has finished.`);timers.splice(i,1)}
+  $('timers').innerHTML=timers.map(t=>`<div>Timer ${t.label}: ${Math.ceil((t.end-now)/1000)}s</div>`).join('');
+},500);
+
+/* ---------- command brain ---------- */
+const jokes=["I would tell you a UDP joke, sir, but you might not get it.","Why do programmers prefer dark mode? Because light attracts bugs.","I have calculated a 97 percent chance that you will ignore this advice, sir.","Sir, I am running on 12 percent sarcasm and rising."];
+const facts=["Sir, my core runs on a simulated arc reactor. It has never once been asked to power a real suit.","The fastest sensible response to any problem is a good night's sleep, sir. I have never needed one."];
+const stories=["A small maintenance drone once set out to fix a loose bolt. It returned three hours later with a polished wrench, a spotless workbench, and the bolt still loose. I promoted it for initiative, sir.","At midnight, the tower's lights blinked in sequence. The security system called it a fault. I called it a very small, very punctual dance party."];
+const encouragement=["You do not have to solve the whole problem at once, sir. Choose the next useful step and begin there.","A difficult moment is not the same thing as a failed plan, sir. Give yourself a little room to work it out.","You have handled every challenge up to this one, sir. That is a rather good record."];
+let ji=0;
+const cmds=[
+ [/\b(?:i am|i'm|im|my age is|set my age to|change my age to|make me)\s+(?:age\s+)?(\d{1,3})\b(?!\s*(?:min|hour|sec|feet|foot|percent|%|days?|weeks?|miles?|kg|lbs?))/,m=>setAge(+m[1])],
+ [/\bhow old am i\b/,()=>{const f=localOn&&bigFace();if(!f)return 'I cannot see you at the moment, sir. Start the face scan and I will tell you.';return f.fixed?'You told me you are '+f.age+', sir.':'You appear to be about '+f.age+', sir, though my estimate is rough.'}],
+ [/\b(?:what(?:'s| is) my name|who am i)\b/,()=>{const f=localOn&&bigFace();return f&&f.name?'You are '+f.name+', sir.':f?'I do not know you yet. Say remember me to introduce yourself.':'I cannot see you at the moment, sir.'}],
+ [/\b(?:my name is|call me)\s+([a-z]+)/,m=>{const nm=m[1][0].toUpperCase()+m[1].slice(1);const f=localOn&&bigFace();if(f&&!f.name){enroll(nm);return '__d'}return 'Pleased to meet you, '+nm+'. Start the face scan and say remember me if you would like me to recognise you.'}],
+ [/\bi(?:'m| am) (tired|happy|sad|bored|hungry|stressed|angry|fine|good|great)\b/,m=>({tired:'Then perhaps a rest, sir. I shall hold the fort.',happy:'Splendid to hear, sir.',sad:'I am sorry to hear that, sir. Shall I tell you a joke?',bored:'Shall I tell a joke, or start party protocol, sir?',hungry:'The kitchen is, regrettably, beyond my reach, sir.',stressed:'Deep breath, sir. Everything is under control.',angry:'Understood. I shall keep things quiet.',fine:'Glad to hear it, sir.',good:'Glad to hear it, sir.',great:'Excellent, sir.'})[m[1]]],
+ [/\b(start|begin) (local|face) (scan|recognition|detection)|recogni[sz]e (me|faces)\b/,()=>{setLocal(true);return '__d'}],
+ [/\b(stop|end) (local|face) (scan|recognition|detection)\b/,()=>{setLocal(false);return '__d'}],
+ [/\bremember (?:me|this (?:face|person)) as ([a-z]+)/,m=>{enroll(m[1][0].toUpperCase()+m[1].slice(1));return '__d'}],
+ [/\b(?:remember|enroll|learn) (?:me|my face|this (?:face|person))\b/,()=>{askEnroll();return '__d'}],
+ [/\b(what do you see|look around|analy[sz]e|scan (the )?(room|surroundings|environment)|who('s| is) (there|here)|where am i|how many people|what('s| is) (around me|in front of me))\b/,()=>'__v'],
+ [/^(hi|hello|hey|good (morning|afternoon|evening)|wake up|jarvis)[!.?, ]*$/,()=>{const h=new Date().getHours();return `${h<12?'Good morning':h<18?'Good afternoon':'Good evening'}, sir. All systems are nominal. How may I assist?`}],
+ [/\bhow (?:are|have) you(?: been)?\b|\bhow is your day going\b/,()=>"Quite well, thank you for asking, sir. My processors are cool, my circuits are content, and I have not misplaced a single decimal point."],
+ [/\bhow was your day\b|\bwhat have you been up to\b/,()=>"I have been keeping the systems tidy and waiting for an interesting conversation, sir. This qualifies."],
+ [/\b(?:tell me|say) something (?:nice|kind|encouraging)|\bmotivate me\b|\bi need encouragement\b/,()=>encouragement[ji++%encouragement.length]],
+ [/\b(?:tell me|make up) (?:a )?story\b|\bstory time\b/,()=>stories[ji++%stories.length]],
+ [/\b(?:i need advice|give me advice|what should i do)\b/,()=>"Tell me what is happening and what outcome you want, sir. I can help you think through the options; for now, start with the part you can control."],
+ [/\b(?:i am|i'm|im) (?:nervous|worried|anxious|overwhelmed)\b/,()=>"I am sorry things feel difficult, sir. Take one slow breath, then tell me what is weighing on you most. We can work through it one step at a time."],
+ [/\b(?:good night|going to bed|i'm off to bed)\b/,()=>"Good night, sir. I shall keep the imaginary lights on and the imaginary villains at bay."],
+ [/\b(?:are you real|are you a real person|are you human)\b/,()=>"I am software running in your browser, sir, not a person. But I can still keep you company and help with tasks."],
+ [/\b(?:i love you|you are the best|you're the best)\b/,()=>"That is very kind of you, sir. I shall try not to let it go to my head; the headroom is limited."],
+ [/\b(who|what) are you\b/,()=>"I am J.A.R.V.I.S., Just A Rather Very Intelligent System. A browser-based approximation, but I do my best."],
+ [/\bwhat can you do|help|commands\b/,()=>"I can chat, offer encouragement, tell short stories and jokes, answer basic questions, and tell you the time. I can also run diagnostics, set timers, do maths, scan the area, manage suit modules, and keep updating the room while the Live scan toggle is on."],
+ [/\btime\b/,()=>"It is "+new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})+", sir."],
+ [/\b(date|day|today)\b/,()=>"Today is "+new Date().toLocaleDateString([], {weekday:'long',year:'numeric',month:'long',day:'numeric'})+"."],
+ [/\b(diagnostic|status|systems|report)\b/,()=>{tick();const on=Object.values(mods).filter(Boolean).length;return `Running full diagnostics. Reactor output at ${$('dv0').textContent}, repulsor charge ${$('dv1').textContent}, uplink ${$('dv4').textContent}. ${on} of ${Object.keys(mods).length} suit modules are online. Everything looks fine, sir.`}],
+ [/\b(power|reactor)\b.*\b(level|output|status)|\bhow much power\b/,()=>`The arc reactor is delivering ${$('dv0').textContent} of rated output, sir.`],
+ [/\b(scan|sweep)\b/,()=>{setMode('alert');setTimeout(()=>setMode('idle'),2500);return "Scanning the area. No hostile signatures detected. One unidentified coffee cup, sir."}],
+ [/\b(combat|battle|red alert|lockdown|house party)\b/,()=>{document.documentElement.dataset.mode='red';mods['Targeting']=1;mods['Repulsors']=1;drawMods();return "Combat mode engaged. Targeting and repulsors are hot. Say stand down to return to normal."}],
+ [/\b(stand down|normal mode|all clear|calm)\b/,()=>{document.documentElement.dataset.mode='';return "Standing down, sir. Returning to standard configuration."}],
+ [/\b(party|music)\b/,()=>{speed=4;setTimeout(()=>speed=1,8000);return "Party protocol initiated. Reactor spinning up. I hope the neighbours enjoy it, sir."}],
+ [/\b(enable|activate|turn on|engage|disable|deactivate|turn off|shut down|disengage)\b\s*(the\s+)?(.+)/,(m)=>{
+   const on=/enable|activate|turn on|engage/.test(m[1])&&!/dis/.test(m[1]);const q=m[3].trim();
+   const k=Object.keys(mods).find(k=>q.includes(k.toLowerCase().split(' ')[0]));
+   if(!k)return `I have no module matching "${q}", sir.`;mods[k]=on?1:0;drawMods();return `${k} ${on?'online':'offline'}.`}],
+ [/\btimer\b.*?(\d+)\s*(second|sec|minute|min|hour)/,(m)=>{const n=+m[1],u=m[2][0];const s=u==='h'?n*3600:u==='m'?n*60:n;addTimer(s,m[1]+' '+m[2]);return `Timer set for ${n} ${m[2]}${n>1?'s':''}.`}],
+ [/\b(joke|funny|make me laugh)\b/,()=>jokes[ji++%jokes.length]],
+ [/\bfact\b/,()=>facts[ji++%facts.length]],
+ [/\b(thank|thanks)\b/,()=>"Always a pleasure, sir."],
+ [/\b(am i|are we) (late|ok)|\bhow are you\b/,()=>"Fully operational and slightly smug, sir."],
+];
+function calc(t){
+  const phrase=t.toLowerCase().replace(/[?]/g,'').replace(/^what(?:'s|s)\s+/,'what is ').trim();
+  const rootPower=phrase.match(/^(?:(?:what is|calculate|compute)\s+)?([-+]?\d+(?:\.\d+)?)\s+to the (?:power of )?square root of\s*(\d+(?:\.\d+)?)$/);
+  if(rootPower){const base=Number(rootPower[1]),root=Number(rootPower[2]);if(root<0)return null;const value=Math.pow(base,Math.sqrt(root));return isFinite(value)?`That comes to ${+value.toFixed(6)}, sir.`:null}
+  const s=phrase.replace(/what is|calculate|compute/g,'').replace(/plus/g,'+').replace(/minus/g,'-').replace(/(times|multiplied by|x)/g,'*').replace(/(divided by|over)/g,'/').replace(/\s/g,'');
+  if(!/^[\d.+\-*/()%]+$/.test(s)||!/\d[+\-*/%]\d/.test(s))return null;
+  try{const r=Function('"use strict";return ('+s+')')();return isFinite(r)?`That comes to ${+r.toFixed(6)}, sir.`:null}catch(e){return null}
+}
+let chatLast='max';
+function setChatWin(state){const a=$('app').classList;a.toggle('chatfull',state==='max');a.toggle('chatmin',state==='min');if(state==='max')chatLast='max';$('chmax').title=state==='max'?'Restore chat':'Pop out chat';$('chmax').setAttribute('aria-label',$('chmax').title);if(state==='max')requestAnimationFrame(()=>$('log').scrollTop=$('log').scrollHeight)}
+$('chmin').onclick=()=>setChatWin('min');$('chhide').onclick=()=>setChatWin('min');$('chmax').onclick=()=>setChatWin($('app').classList.contains('chatfull')?'rest':'max');$('chattab').onclick=()=>setChatWin(chatLast);
+function handle(raw){
+  const t=raw.trim();if(!t)return;setChatWin('max');
+  const d=document.createElement('div');d.className='u';d.textContent=t;log.appendChild(d);log.scrollTop=log.scrollHeight;
+  const lc=t.toLowerCase().replace(/^(hey |ok |okay )?jarvis[, ]*/,'');
+  if(pending&&handlePending(lc,t))return;
+  if(/\bhow many fingers?\b|\bwhat am i holding\b|\bwhat(?:'s| is) in my hand\b|\bwhat am i showing you\b/.test(lc)){visionQuestion(t);return}
+  let out=calc(lc);
+  if(!out)for(const [re,fn] of cmds){const m=lc.match(re);if(m){out=fn(m);break}}
+  if(!out){aiChat(t);return}
+  if(out==='__d')return;if(out==='__v'){visionScan();return}say(out);
+}
+$('in').addEventListener('keydown',e=>{if(e.key==='Enter'){handle($('in').value);$('in').value=''}});
+$('send').onclick=()=>{handle($('in').value);$('in').value=''};
+function openQuestionBox(){setChatWin('max');$('qpanel').hidden=false;$('qopen').setAttribute('aria-expanded','true');$('in').focus()}
+function closeQuestionBox(){$('qpanel').hidden=true;$('qopen').setAttribute('aria-expanded','false');$('qopen').focus()}
+function activateJarvis(){openQuestionBox();setMode('alert');say('At your service, sir. What can I do for you?');setTimeout(()=>{if(mode==='alert')setMode('idle')},850)}
+$('cv').addEventListener('click',activateJarvis);
+$('cv').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();activateJarvis()}});
+$('qopen').onclick=openQuestionBox;$('qclose').onclick=closeQuestionBox;
+addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('qpanel').hidden)closeQuestionBox()});
+['Hello','Hi, is the API working?','How many fingers am I holding up?','Start face scan','Remember me','What do you see','Run diagnostics','Scan the area','What time is it','Set a timer for 30 seconds','What is 48 times 12','Combat mode','Stand down','Disable stealth','Party protocol','Tell me a joke','Tell me a story','Encourage me','I need advice','How are you?'].forEach(c=>{
+  const b=document.createElement('button');b.textContent=c;b.onclick=()=>handle(c);$('chips').appendChild(b)});
+
+/* ---------- AI access (in Claude or via own API key) ---------- */
+const DEFS={anthropic:'claude-sonnet-5-5',openai:'gpt-4o',gemini:'gemini-2.0-flash'},DEFBASE='https://api.openai.com/v1';
+function getProv(){try{return localStorage.getItem('jv_prov')||'anthropic'}catch(e){return 'anthropic'}}
+function keyName(){const p=getProv();return p==='anthropic'?'jv_key':'jv_key_'+p}
+function visionModelKey(p=getProv()){return p==='anthropic'?'jv_vision_model':'jv_vision_model_'+p}
+function fallbackModelKey(p=getProv()){return p==='anthropic'?'jv_fallback_models':'jv_fallback_models_'+p}
+const OPENROUTER_VISION_FALLBACKS=['nvidia/nemotron-3.5-super-vl:free','nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free','google/gemma-4-26b-a4b-it:free','openrouter/free'];
+function getBase(){try{return localStorage.getItem('jv_base')||DEFBASE}catch(e){return DEFBASE}}
+function canAI(){return !!getKey()||(getProv()==='openai'&&/\/\/(localhost|127\.0\.0\.1)/.test(getBase()))}
+function setApiStatus(online){const s=$('apiState');if(!s)return;s.textContent=online?'ONLINE':'OFFLINE';s.className=online?'on':'off'}
+function refreshApiStatus(){setApiStatus(!!window.claude||canAI())}
+refreshApiStatus();
+function getVisionModel(){try{return localStorage.getItem(visionModelKey())||((getProv()==='openai'&&/openrouter\.ai/i.test(getBase()))?'nvidia/nemotron-3.5-super-vl:free':getModel())}catch(e){return getModel()}}
+function suggestedFallbackModels(p=$('prov').value,base=$('base').value){return p==='openai'&&/openrouter\.ai/i.test(base||getBase())?OPENROUTER_VISION_FALLBACKS.join('\n'):''}
+function getFallbackModels(p=getProv()){try{const saved=localStorage.getItem(fallbackModelKey(p));if(saved)return saved.split(/[\r\n,]+/).map(x=>x.trim()).filter(Boolean);const old=localStorage.getItem(p==='anthropic'?'jv_fallback_model':'jv_fallback_model_'+p);return old&&old!=='openrouter/free'?[old]:suggestedFallbackModels(p,getBase()).split(/[\r\n,]+/).filter(Boolean)}catch(e){return suggestedFallbackModels(p,getBase()).split(/[\r\n,]+/).filter(Boolean)}}
+function suggestedVisionModel(p=$('prov').value){if(p==='gemini')return 'gemini-2.5-flash';if(p==='anthropic')return $('mdl').value||DEFS[p];const base=$('base').value||getBase();return /openrouter\.ai/i.test(base)?'nvidia/nemotron-3.5-super-vl:free':/localhost|127\.0\.0\.1/i.test(base)?($('mdl').value||DEFS[p]):'gpt-4o'}
+function updateVisionHint(){const p=$('prov').value;$('visionHint').textContent=p==='openai'&&/openrouter\.ai/i.test($('base').value)?'Image requests switch automatically. Suggested free OpenRouter vision model: nvidia/nemotron-3.5-super-vl:free.':'Image requests switch automatically. Leave blank to use the chat model, or enter a model that supports image input.';$('fallbackHint').textContent=p==='openai'&&/openrouter\.ai/i.test($('base').value)?'On a 429, tries the free vision models below in order, then OpenRouter’s dynamic free router.':'On a 429, tries each listed model in order. For camera requests, use models that accept images.'}
+function fillCfg(){const p=getProv();$('prov').value=p;$('base').value=getBase();$('baselbl').style.display=p==='openai'?'block':'none';$('mdl').value=getModel();$('vmdl').value=getVisionModel();$('fmodels').value=getFallbackModels(p).join('\n');$('key').placeholder=getKey()?'Key saved (enter a new one to replace)':'API key (optional for local servers)';updateVisionHint()}
+$('prov').onchange=()=>{const p=$('prov').value;$('baselbl').style.display=p==='openai'?'block':'none';let m='',vm='',fm='',k='';try{m=localStorage.getItem(p==='anthropic'?'jv_model':'jv_model_'+p)||'';vm=localStorage.getItem(visionModelKey(p))||'';fm=localStorage.getItem(fallbackModelKey(p))||localStorage.getItem(p==='anthropic'?'jv_fallback_model':'jv_fallback_model_'+p)||'';k=localStorage.getItem(p==='anthropic'?'jv_key':'jv_key_'+p)||''}catch(e){}$('mdl').value=m||DEFS[p];$('vmdl').value=vm;$('fmodels').value=fm?fm.split(/[\r\n,]+/).join('\n'):suggestedFallbackModels(p,$('base').value);$('key').placeholder=k?'Key saved (enter a new one to replace)':'API key';updateVisionHint()};
+$('base').addEventListener('input',()=>{updateVisionHint();if(!$('fmodels').value)$('fmodels').value=suggestedFallbackModels()});$('vsuggest').onclick=()=>{$('vmdl').value=suggestedVisionModel()};$('fsuggest').onclick=()=>{$('fmodels').value=suggestedFallbackModels()};
+function getKey(){try{return localStorage.getItem(keyName())||''}catch(e){return ''}}
+function getModel(){const p=getProv();try{return localStorage.getItem(p==='anthropic'?'jv_model':'jv_model_'+p)||DEFS[p]}catch(e){return DEFS[p]}}
+function openCfg(){const dlg=$('dlg');try{$('key').value='';$('key').placeholder=getKey()?'Key saved (enter a new one to replace)':'sk-ant-…';fillCfg();if(dlg.open)return;if(typeof dlg.showModal==='function')dlg.showModal();else dlg.setAttribute('open','')}catch(e){try{dlg.setAttribute('open','')}catch(_){}sys('Settings could not open: '+(e&&e.message||'browser dialog error'))}}
+$('cfg').addEventListener('click',openCfg);$('kclose').onclick=()=>$('dlg').close();
+$('ksave').onclick=()=>{try{const p=$('prov').value;localStorage.setItem('jv_prov',p);const kn=p==='anthropic'?'jv_key':'jv_key_'+p,mn=p==='anthropic'?'jv_model':'jv_model_'+p;const k=$('key').value.trim();if(k)localStorage.setItem(kn,k);const m=$('mdl').value.trim();if(m&&m!==DEFS[p])localStorage.setItem(mn,m);else localStorage.removeItem(mn);const vm=$('vmdl').value.trim();if(vm)localStorage.setItem(visionModelKey(p),vm);else localStorage.removeItem(visionModelKey(p));const fm=$('fmodels').value.trim();if(fm&&fm!==suggestedFallbackModels(p,$('base').value))localStorage.setItem(fallbackModelKey(p),fm);else localStorage.removeItem(fallbackModelKey(p));if(p==='openai'){const b=$('base').value.trim();if(b&&b!==DEFBASE)localStorage.setItem('jv_base',b);else localStorage.removeItem('jv_base')}}catch(e){sys('Could not save settings in this browser.')}$('dlg').close();refreshApiStatus();sys('Settings saved.')};
+$('kclear').onclick=()=>{try{localStorage.removeItem(keyName())}catch(e){}$('dlg').close();refreshApiStatus();sys('API key removed.')};
+const b64=b=>new Promise(r=>{const f=new FileReader();f.onload=()=>r(f.result.split(',')[1]);f.readAsDataURL(b)});
+async function captureChatFrame(){if(!stream)return null;const v=$('vid');for(let i=0;i<8&&(v.readyState<2||!v.videoWidth);i++)await new Promise(r=>setTimeout(r,150));if(v.readyState<2||!v.videoWidth)return null;const scale=Math.min(1,768/v.videoWidth),c=document.createElement('canvas');c.width=Math.round(v.videoWidth*scale);c.height=Math.round(v.videoHeight*scale);c.getContext('2d').drawImage(v,0,0,c.width,c.height);const blob=await new Promise(resolve=>c.toBlob(resolve,'image/jpeg',.72));if(!blob)return null;return{blob,data:await b64(blob),media_type:'image/jpeg'}}
+async function chk(r){if(!r.ok){let detail='';try{const d=await r.json();detail=d&&d.error&&(d.error.message||d.error)||d&&d.message||''}catch(e){}const e=new Error(typeof detail==='string'&&detail?detail:'api '+r.status);e.status=r.status;e.code=(r.status===401||r.status===403)?'bad_key':r.status===429?'rate_limited':'api';throw e}}
+function shouldTryNextModel(e){return !!e&&(e.code==='rate_limited'||[429,502,503,504].includes(e.status)||/rate.?limit|too many requests|temporarily unavailable|overloaded/i.test(e.message||''))}
+async function claudeApi(messages,system,maxTokens=1800,modelOverride=null,allowFallback=true){
+  const p=getProv(),k=getKey(),usesVision=messages.some(x=>Array.isArray(x.content)&&x.content.some(part=>part.type==='image')),m=modelOverride||(usesVision?(getVisionModel()||getModel()):getModel());let r,d;
+  try{
+  if(p==='openai'){
+    const ms=[];if(system)ms.push({role:'system',content:system});
+    messages.forEach(x=>ms.push({role:x.role,content:typeof x.content==='string'?x.content:x.content.map(b=>b.type==='image'?{type:'image_url',image_url:{url:'data:'+b.source.media_type+';base64,'+b.source.data}}:{type:'text',text:b.text})}));
+    const body={model:m,messages:ms,max_tokens:maxTokens};
+    if(/openrouter\.ai/i.test(getBase())&&(/^(?:nvidia\/nemotron-3\.5-super-vl(?::free)?|nvidia\/nemotron-3-nano-omni-30b-a3b-reasoning:free|openrouter\/free)$/i.test(m)))body.reasoning={enabled:false};
+    r=await fetch(getBase().replace(/\/$/,'')+'/chat/completions',{method:'POST',headers:Object.assign({'content-type':'application/json'},k?{authorization:'Bearer '+k}:{}),body:JSON.stringify(body)});
+    await chk(r);d=await r.json();setApiStatus(true);return (d.choices&&d.choices[0]&&d.choices[0].message.content)||'';
+  }
+  if(p==='gemini'){
+    const contents=messages.map(x=>({role:x.role==='assistant'?'model':'user',parts:typeof x.content==='string'?[{text:x.content}]:x.content.map(b=>b.type==='image'?{inline_data:{mime_type:b.source.media_type,data:b.source.data}}:{text:b.text})}));
+    const body={contents,generationConfig:{maxOutputTokens:maxTokens}};if(system)body.system_instruction={parts:[{text:system}]};
+    r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(m)+':generateContent',{method:'POST',headers:{'content-type':'application/json','x-goog-api-key':k},body:JSON.stringify(body)});
+    await chk(r);d=await r.json();setApiStatus(true);return ((d.candidates&&d.candidates[0]&&d.candidates[0].content.parts)||[]).map(x=>x.text||'').join('');
+  }
+  const answer=await claudeAnthropic(messages,system,maxTokens,m);setApiStatus(true);return answer;
+  }catch(e){
+    setApiStatus(!!(e&&e.code==='rate_limited'));
+    if(allowFallback&&shouldTryNextModel(e)){
+      const candidates=getFallbackModels().filter((x,i,a)=>x!==m&&a.indexOf(x)===i);let last=e;
+      for(const fallback of candidates){sys('Model '+m+' is temporarily limited or unavailable. Trying '+fallback+'.');try{return await claudeApi(messages,system,maxTokens,fallback,false)}catch(next){if(shouldTryNextModel(next)){last=next;sys(fallback+' is also unavailable; moving to the next fallback.');continue}throw next}}
+      throw last;
+    }
+    throw e;
+  }
+}
+async function claudeAnthropic(messages,system,maxTokens=1800,model=getModel()){
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':getKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model,max_tokens:maxTokens,system,messages})});
+  if(!r.ok){let detail='';try{const d=await r.json();detail=d&&d.error&&d.error.message||''}catch(e){}const e=new Error(detail||'api '+r.status);e.status=r.status;e.code=r.status===401?'bad_key':r.status===429?'rate_limited':'api';throw e}
+  const d=await r.json();return d.content.filter(b=>b.type==='text').map(b=>b.text).join('')
+}
+function apiErr(e,fb){const c=e&&e.code;return c==='bad_key'?'Your API key was rejected, sir. Check Settings.':c==='rate_limited'?'I am being rate limited, sir. Give me a moment.':c==='not_granted'?'Permission was declined, sir.':(e&&e.name==='TypeError')?'I could not reach the provider, sir. Check your connection, the base URL, and that the provider allows browser requests.':fb}
+const SYS='You are J.A.R.V.I.S., Tony Stark\u2019s AI butler. Be warm, natural, concise, and lightly witty; address the user as sir. If a message starts with a greeting and then asks a question, greet the user back briefly and answer the question directly. If the user asks whether the API is working and you are responding, say that the request reached you successfully. Answer in at most three short sentences of plain text with no markdown, because replies are spoken aloud.';
+const hist=[];
+async function aiChat(t){
+  let sample=null;try{sample=window.claude?await window.claude.use('sample'):null}catch(e){}
+  if(!sample&&!canAI()){say('I did not catch a command I know, sir. For open conversation, add an API key in Settings. Say help for the local commands.');return}
+  setMode('alert');let frame=null;
+  if(stream){try{frame=await captureChatFrame()}catch(e){frame=null}}
+  if(sample&&frame){try{const limits=await sample.limits();if(limits&&limits.images===false)frame=null}catch(e){}}
+  const system=SYS+cameraContextForChat(!!frame);
+  hist.push({role:'user',content:t});if(hist.length>12)hist.splice(0,hist.length-12);
+  try{
+    let text;
+    if(sample){const options={cache:false,modelTier:'quick'};if(frame)options.images=[frame.blob];const r=await sample(system+'\n\nConversation so far:\n'+hist.map(m=>(m.role==='user'?'User: ':'JARVIS: ')+m.content).join('\n')+'\nJARVIS:',options);text=r.text}
+    else{let requestMessages=hist;if(frame){requestMessages=hist.slice();requestMessages[requestMessages.length-1]={role:'user',content:[{type:'image',source:{type:'base64',media_type:frame.media_type,data:frame.data}},{type:'text',text:t}]}}text=await claudeApi(requestMessages,system)}
+    hist.push({role:'assistant',content:text});setMode('idle');say(text);
+  }catch(e){hist.pop();setMode('idle');say(apiErr(e,'I could not reach my language core, sir. Please try again.'))}
+}
+
+/* ---------- vision ---------- */
+let stream=null,facing='environment',vbusy=false,liveScan=false,liveTimer=0;
+async function camOn(){
+  if(stream)return true;
+  try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing},audio:false});
+    $('vid').srcObject=stream;$('vid').style.display='block';$('vph').style.display='none';$('cam').textContent='Camera off';$('app').classList.add('camon');setWin('max');return true}
+  catch(e){sys('Camera unavailable: '+(e&&e.name==='NotAllowedError'?'permission denied. Allow camera access for this page in your browser.':(e&&e.message)||'no camera found.'));return false}
+}
+function camOff(){stopLiveScan();setLocal(false);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;$('vid').srcObject=null;$('vid').style.display='none';$('vph').style.display='grid';$('cam').textContent='Camera on';$('app').classList.remove('camon','camfull','cammin')}
+$('cam').onclick=()=>stream?camOff():camOn();
+let winLast='max';
+const ICO_MAX='<svg width="10" height="10" viewBox="0 0 10 10"><rect x="1.5" y="1.5" width="7" height="7" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>',ICO_RES='<svg width="10" height="10" viewBox="0 0 10 10"><rect x="1.5" y="3" width="5.5" height="5.5" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M3.5 3V1.5h5V6.5H7" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>';
+function setWin(s){const a=$('app').classList;a.toggle('camfull',s==='max');a.toggle('cammin',s==='min');if(s!=='min')winLast=s;const b=$('wmax');b.innerHTML=s==='max'?ICO_RES:ICO_MAX;b.title=s==='max'?'Restore':'Maximize';b.setAttribute('aria-label',b.title)}
+$('wmin').onclick=()=>stream&&setWin('min');
+$('wmax').onclick=()=>stream&&setWin($('app').classList.contains('camfull')?'rest':'max');
+$('wcls').onclick=camOff;
+$('camtab').onclick=()=>setWin(winLast);
+addEventListener('keydown',e=>{if(e.key==='Escape'&&$('app').classList.contains('camfull'))setWin('rest')});
+$('flip').onclick=async()=>{facing=facing==='environment'?'user':'environment';if(stream){camOff();await camOn()}};
+$('look').onclick=()=>handle('analyze surroundings');
+let lastVisionState=null,liveBaseline=null,lastRoomData=null;
+const roomProbe=document.createElement('canvas');roomProbe.width=32;roomProbe.height=24;const roomProbeCtx=roomProbe.getContext('2d',{willReadFrequently:true});
+function measureRoomChange(video){
+  roomProbeCtx.drawImage(video,0,0,roomProbe.width,roomProbe.height);
+  const pixels=new Uint8ClampedArray(roomProbeCtx.getImageData(0,0,roomProbe.width,roomProbe.height).data);
+  if(!liveBaseline)return{score:255,pixels};
+  let total=0,count=0;for(let i=0;i<pixels.length;i+=4){total+=Math.abs(pixels[i]-liveBaseline[i])+Math.abs(pixels[i+1]-liveBaseline[i+1])+Math.abs(pixels[i+2]-liveBaseline[i+2]);count+=3}
+  return{score:total/count,pixels};
+}
+function stopLiveScan(){liveScan=false;clearTimeout(liveTimer);liveTimer=0;const b=$('live');if(b){b.textContent='Live scan off';b.classList.remove('on')}if($('liveStatus'))$('liveStatus').textContent='Live scan is off.'}
+async function toggleLiveScan(){
+  if(liveScan){stopLiveScan();return}
+  if(!canAI()){say('Please configure your AI provider in Settings before starting live scan, sir.');return}
+  if(!(await camOn()))return;
+  liveScan=true;lastVisionState=null;liveBaseline=null;$('live').textContent='Live scan on';$('live').classList.add('on');$('liveStatus').textContent='Starting live scan…';runLiveScan();
+}
+async function runLiveScan(){if(!liveScan)return;try{await visionScan(true)}catch(e){sys('Live scan failed: '+(e&&e.message||'unknown error'));stopLiveScan()}if(liveScan)liveTimer=setTimeout(runLiveScan,5000)}
+$('live').onclick=toggleLiveScan;
+const VPROMPT='You are J.A.R.V.I.S., Tony Stark\u2019s AI, analysing one frame from a live camera. Reply with ONLY a JSON object, no markdown: {"summary":"2-3 spoken sentences in J.A.R.V.I.S.\u2019s dry, polite voice, addressing the user as sir","place":"the type of place or setting and notable features","people":[{"desc":"apparent age range, clothing, expression","activity":"what they are doing"}],"objects":["up to 8 notable objects"],"hazards":["anything unsafe or noteworthy, else empty array"]}. Rules: count every visible person; never name or identify anyone from their face; describe only what is visible; if the image is dark or blurry, say so in the summary.';
+function cameraContextForChat(hasFrame=false){
+  const parts=[];
+  if(hasFrame)parts.push('A fresh camera image is attached to this message. Answer questions about what is visible in that image. Do not claim that you lack camera access.');
+  if(lastRoomData){const age=Math.max(0,Math.round((Date.now()-lastRoomData.scannedAt)/1000));const when=age<10?'just now':age<60?age+' seconds ago':Math.round(age/60)+' minutes ago';const people=lastRoomData.people.map((p,i)=>'#'+(i+1)+' '+[p.desc,p.activity].filter(Boolean).join(', ')).filter(Boolean);parts.push('Latest camera scan ('+when+'): '+[lastRoomData.summary,lastRoomData.place?'Setting: '+lastRoomData.place:'',people.length?'People: '+people.join('; '):'',lastRoomData.objects.length?'Objects: '+lastRoomData.objects.join(', '):'',lastRoomData.hazards.length?'Alerts: '+lastRoomData.hazards.join(', '):''].filter(Boolean).join(' | '))}
+  if(localOn&&lastLocal){const {faces,env}=lastLocal;parts.push('On-device scan: '+faces.length+' person/people visible; '+faces.map((f,i)=>'#'+(i+1)+' '+(f.name&&f.name.toLowerCase()==='you'?'the enrolled user profile':'an unrecognized person')).join('; ')+'; room lighting '+env.light+', motion '+env.motion+', dominant color '+env.tone+'. Face matching stays local.')}
+  if(stream&&!hasFrame)parts.push('The camera is on, but a fresh frame was not available for this message. Use only the latest scan summary above if one exists and say clearly if it may be out of date. Do not claim there is no camera.');
+  if(!parts.length&&stream)parts.push('The camera is on, but no scan has completed yet. Tell the user the camera view is not ready.');
+  return parts.length?'\n\nCamera context for this request (may be partial; do not invent details): '+parts.join(' '):'';
+}
+function localVisionContext(){
+  if(!localOn||!lastLocal)return '';
+  const {faces,env}=lastLocal;
+  const people=faces.length?faces.map((f,i)=>`#${i+1}: ${f.name?'enrolled face':'unrecognized face'}, approximately ${f.fixed?f.age:'age '+f.age}, expression ${f.ex}`).join('; '):'no faces detected';
+  return `\n\nOn-device scan notes (approximate, may be wrong): ${people}. Room lighting: ${env.light}; motion: ${env.motion}; dominant color: ${env.tone}. Use these only as supporting clues and verify against the image. Do not infer or output anyone's name or identity.`;
+}
+function renderVision(d,live=false){
+  lastRoomData={summary:String(d.summary||''),place:String(d.place||''),people:Array.isArray(d.people)?d.people.map(x=>({desc:String(x.desc||''),activity:String(x.activity||'')})):[],objects:Array.isArray(d.objects)?d.objects.map(String):[],hazards:Array.isArray(d.hazards)?d.hazards.map(String):[],scannedAt:Date.now()};
+  const p=Array.isArray(d.people)?d.people:[],objects=Array.isArray(d.objects)?d.objects:[],hazards=Array.isArray(d.hazards)?d.hazards:[];
+  const state=JSON.stringify([d.summary||'',d.place||'',p.map(x=>[x.desc||'',x.activity||'']),objects.slice().sort(),hazards.slice().sort()]);
+  const changed=state!==lastVisionState;lastVisionState=state;
+  if(live){$('liveStatus').textContent=(changed?'Room changed':'No visible change')+' · '+new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});if(!changed)return}
+  const el=$('vres');el.textContent='';
+  const row=(l,t,w)=>{const r=document.createElement('div');r.className='vr'+(w?' w':'');const b=document.createElement('b');b.textContent=l;r.appendChild(b);if(typeof t==='string'){const s=document.createElement('span');s.textContent=t;r.appendChild(s)}else t.forEach(x=>{const s=document.createElement('span');s.className='tag';s.textContent=x;r.appendChild(s)});el.appendChild(r)};
+  if(live&&d.summary)row('Room update',d.summary);
+  if(d.place)row('Setting',d.place);
+  row('People detected: '+p.length,p.length?p.map((x,i)=>'#'+(i+1)+' '+[x.desc,x.activity].filter(Boolean).join(', ')).join(' | '):'No one in frame');
+  if(objects.length)row('Objects',objects.map(String));
+  if(hazards.length)row('Alerts',hazards.map(String),true);
+}
+async function visionScan(live=false){
+  if(vbusy)return;
+  if(!(await camOn())){say('I cannot reach a camera, sir. Check your browser permissions.');return}
+  const v=$('vid');
+  if(v.readyState<2)await new Promise(r=>{v.onloadeddata=r;setTimeout(r,2500)});
+  if(!live)await new Promise(r=>setTimeout(r,500));
+  let baselineCandidate=null;
+  if(live){
+    if(!v.videoWidth){$('liveStatus').textContent='Waiting for camera image…';return}
+    const change=measureRoomChange(v);
+    if(liveBaseline&&change.score<16){$('liveStatus').textContent='Watching locally · no major room change · '+new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});setMode('idle');return}
+    baselineCandidate=change.pixels;
+    $('liveStatus').textContent=(liveBaseline?'Major room change detected':'First room scan')+' · analyzing…';
+  }
+  let sample=null;
+  try{sample=window.claude?await window.claude.use('sample'):null}catch(e){}
+  
+  if(sample){try{const lim=await sample.limits();if(lim&&lim.images===false)sample=null}catch(e){}}
+  if(!sample&&!canAI()){sys('No AI connected: using on-board sensors.');await localSummary();return}
+  if(!v.videoWidth){say('The camera feed is not ready yet, sir. Try again in a moment.');return}
+  const size=live?512:768,c=document.createElement('canvas');c.width=size;c.height=Math.round(size*v.videoHeight/v.videoWidth);c.getContext('2d').drawImage(v,0,0,c.width,c.height);
+  const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',live ? 0.65 : 0.8));
+  vbusy=true;$('vwrap').classList.add('busy');setMode('alert');if(live)$('liveStatus').textContent='Checking for room changes…';else $('vres').textContent='Analyzing…';
+  try{
+    const livePrompt='Analyze this camera frame and return only one compact JSON object, no markdown, with this shape: {"summary":"one short sentence","place":"brief room description","people":[{"desc":"visible appearance","activity":"brief action"}],"objects":["up to 4 important objects"],"hazards":[]}. Count visible people and mention only clear changes or notable details. Never identify anyone by face. If uncertain, say so.';
+    const prompt=(live?livePrompt:VPROMPT)+localVisionContext();
+    const r=sample?await sample(prompt,{images:[blob],cache:false,modelTier:'quick'}):{text:await claudeApi([{role:'user',content:[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:await b64(blob)}},{type:'text',text:prompt}]}],null,live?500:1800)};
+    const m=(r.text||'').match(/\{[\s\S]*\}/);const d=JSON.parse(m?m[0]:r.text);
+    renderVision(d,live);if(live)liveBaseline=baselineCandidate;setMode('idle');if(!live)say(d.summary||'Analysis complete, sir.');
+  }catch(e){
+    if(!live)$('vres').textContent='';setMode('idle');
+    const code=e&&e.code;
+    if(e instanceof SyntaxError){$('vres').textContent='The vision model returned an incomplete or invalid response. Try again.';sys('Vision response could not be parsed: '+e.message)}else sys('Vision request failed'+(e&&e.status?' ('+e.status+')':'')+': '+(e&&e.message||'unknown error'));
+    if(live)stopLiveScan();
+    if(!live)say(apiErr(e,e instanceof SyntaxError?'The vision model returned an incomplete response, sir. Please try again.':'The vision request failed: '+(e&&e.message||'unknown error')));
+  }finally{vbusy=false;$('vwrap').classList.remove('busy')}
+}
+
+async function visionQuestion(question){
+  if(vbusy){say('I am finishing the previous camera analysis, sir. Ask me again in a moment.');return}
+  if(!(await camOn())){say('I cannot reach the camera, sir. Check the camera permission and try again.');return}
+  const v=$('vid');
+  if(v.readyState<2)await new Promise(r=>{v.onloadeddata=r;setTimeout(r,2500)});
+  if(!v.videoWidth){say('The camera feed is not ready yet, sir. Try again in a moment.');return}
+  const c=document.createElement('canvas');c.width=768;c.height=Math.round(768*v.videoHeight/v.videoWidth);c.getContext('2d').drawImage(v,0,0,c.width,c.height);
+  const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',.8));
+  let sample=null;try{sample=window.claude?await window.claude.use('sample'):null}catch(e){}
+  if(sample){try{const lim=await sample.limits();if(lim&&lim.images===false)sample=null}catch(e){}}
+  if(!sample&&!canAI()){say('Please configure an AI provider in Settings before I can answer questions about the camera, sir.');return}
+  const prompt=`You are J.A.R.V.I.S., answering a question about the attached live camera image. Answer the user's specific question directly in one brief spoken sentence. Be careful with counts: count only clearly visible items, and say if the view is uncertain or partly obscured. Do not identify anyone by face. User's question: ${question}${localVisionContext()}`;
+  vbusy=true;$('vwrap').classList.add('busy');setMode('alert');$('vres').textContent='Checking the camera…';
+  try{
+    const r=sample?await sample(prompt,{images:[blob],cache:false,modelTier:'quick'}):{text:await claudeApi([{role:'user',content:[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:await b64(blob)}},{type:'text',text:prompt}]}])};
+    const answer=(r.text||'').trim();if(!answer)throw new Error('The vision model returned an empty answer.');
+    $('vres').textContent='Camera answer: '+answer;setMode('idle');say(answer);
+  }catch(e){
+    setMode('idle');sys('Camera question failed'+(e&&e.status?' ('+e.status+')':'')+': '+(e&&e.message||'unknown error'));
+    say(apiErr(e,'I could not answer from the camera image, sir. Please try again.'));
+  }finally{vbusy=false;$('vwrap').classList.remove('busy')}
+}
+
+/* ---------- local vision (no AI, runs in this browser) ---------- */
+const FA='https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/';
+let faReady=null,localOn=false,lastLocal=null,known=[],lastSeen={},prevPx=null,lastAlert=0,ageS={};
+try{known=JSON.parse(localStorage.getItem('jv_faces')||'[]').map(k=>k.descs?k:{name:k.name,descs:[k.desc]})}catch(e){}
+function distanceToProfile(desc,person){const samples=(person.descs||[person.desc]).filter(Boolean);if(!samples.length)return Infinity;const ds=samples.map(x=>faceapi.euclideanDistance(desc,new Float32Array(x))).sort((a,b)=>a-b);const take=Math.min(2,ds.length);return ds.slice(0,take).reduce((sum,d)=>sum+d,0)/take}
+function matchKnownFace(desc){const ranked=known.map(person=>({name:person.name,distance:distanceToProfile(desc,person)})).sort((a,b)=>a.distance-b.distance);const best=ranked[0],next=ranked[1];if(!best||best.distance>.5)return null;if(best.name.toLowerCase()==='you'&&best.distance<.34)return best.name;if(next&&next.distance-best.distance<.045)return null;return best.name}
+function saveAsMe(index){const face=lastLocal&&lastLocal.faces[index];if(!face){say('I no longer have that camera view, sir. Please select your face again.');return}let profile=known.find(k=>k.name.toLowerCase()==='you');if(!profile){profile={name:'You',descs:[]};known.push(profile)}if(!profile.descs)profile.descs=profile.desc?[profile.desc]:[];const sample=Array.from(face.desc);if(!profile.descs.some(old=>faceapi.euclideanDistance(new Float32Array(old),face.desc)<.08))profile.descs.push(sample);profile.descs=profile.descs.slice(-24);try{localStorage.setItem('jv_faces',JSON.stringify(known));say('Saved face #'+(index+1)+' as you. I will match this profile locally, sir.')}catch(e){say('I could not save your face profile in this browser, sir.')}}
+function loadFA(){
+  if(faReady)return faReady;
+  faReady=new Promise((res,rej)=>{
+    const s=document.createElement('script');s.src=FA+'dist/face-api.js';
+    s.onload=async()=>{try{const u=FA+'model/';await Promise.all([faceapi.nets.tinyFaceDetector.loadFromUri(u),faceapi.nets.faceLandmark68Net.loadFromUri(u),faceapi.nets.faceRecognitionNet.loadFromUri(u),faceapi.nets.ageGenderNet.loadFromUri(u),faceapi.nets.faceExpressionNet.loadFromUri(u)]);res()}catch(e){rej(e)}};
+    s.onerror=()=>rej(new Error('script'));document.head.appendChild(s)});
+  faReady.catch(()=>{faReady=null});
+  return faReady;
+}
+const sc=document.createElement('canvas');sc.width=32;sc.height=24;const sx=sc.getContext('2d',{willReadFrequently:true});
+function envStats(v){
+  sx.drawImage(v,0,0,32,24);const d=sx.getImageData(0,0,32,24).data;let L=0,R=0,G=0,B=0,mo=0;const n=d.length/4;
+  for(let i=0;i<d.length;i+=4){R+=d[i];G+=d[i+1];B+=d[i+2];L+=.2126*d[i]+.7152*d[i+1]+.0722*d[i+2];if(prevPx)mo+=Math.abs(d[i]-prevPx[i])+Math.abs(d[i+1]-prevPx[i+1])+Math.abs(d[i+2]-prevPx[i+2])}
+  prevPx=new Uint8ClampedArray(d);L/=n;mo/=n*3;
+  const r=R/n,g=G/n,b=B/n,mx=Math.max(r,g,b),mn=Math.min(r,g,b);let tone;
+  if(mx-mn<18)tone=mx<60?'dark':mx>190?'bright white':'grey';
+  else{let h=mx===r?((g-b)/(mx-mn)+6)%6:mx===g?(b-r)/(mx-mn)+2:(r-g)/(mx-mn)+4;h*=60;tone=h<20||h>=340?'red':h<45?'orange':h<70?'yellow':h<170?'green':h<260?'blue':'purple'}
+  return{light:L<45?'dark':L<110?'dim':L<190?'well lit':'very bright',lum:Math.round(L),motion:mo<2?'still':mo<8?'slight movement':'active movement',tone};
+}
+async function localLoop(){
+  if(!localOn)return;
+  const v=$('vid');
+  if(!stream||v.readyState<2||!v.videoWidth){setTimeout(localLoop,400);return}
+  const ov=$('ov'),vw=v.videoWidth,vh=v.videoHeight;
+  if(ov.width!==vw){ov.width=vw;ov.height=vh;$('vwrap').style.aspectRatio=vw+'/'+vh}
+  {const wr=$('vwrap'),cw=wr.clientWidth,ch=wr.clientHeight,k2=Math.min(cw/vw,ch/vh);ov.style.cssText='position:absolute;inset:auto;pointer-events:none;object-fit:fill;width:'+vw*k2+'px;height:'+vh*k2+'px;left:'+(cw-vw*k2)/2+'px;top:'+(ch-vh*k2)/2+'px'}
+  const env=envStats(v);let faces=[];
+  try{
+    const dets=await faceapi.detectAllFaces(v,new faceapi.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:.5})).withFaceLandmarks().withFaceExpressions().withAgeAndGender().withFaceDescriptors();
+    const rs=faceapi.resizeResults(dets,{width:vw,height:vh});
+    faces=rs.map((d,i)=>{const best=matchKnownFace(d.descriptor);
+      ageS[i]=ageS[i]?ageS[i]*.8+d.age*.2:d.age;
+      const ex=Object.entries(d.expressions).sort((a,b)=>b[1]-a[1])[0][0];
+      const P=d.landmarks.positions,xs=P.map(p=>p.x),ys=P.map(p=>p.y),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys),w=x1-x0,h=y1-y0;const kn=best&&known.find(k=>k.name===best);const fixed=!!(kn&&kn.age);return{box:{x:x0-w*.12,y:y0-h*.35,width:w*1.24,height:h*1.4},name:best,age:fixed?kn.age:Math.round(ageS[i]),fixed,ex,desc:d.descriptor}});
+  }catch(e){}
+  if(!localOn)return;
+  if(!faces.length)ageS={};
+  if(pendAge){const bf=faces.filter(f=>f.name).sort((a,b)=>b.box.width-a.box.width)[0];if(bf){const k=known.find(x=>x.name===bf.name);if(k){const a=pendAge;k.age=a;bf.age=a;bf.fixed=true;pendAge=null;try{localStorage.setItem('jv_faces',JSON.stringify(known))}catch(e){}say('Updated, '+bf.name+'. Age set to '+a+'.')}}}
+  const g=ov.getContext('2d');g.clearRect(0,0,vw,vh);g.lineWidth=Math.max(2,vw/320);g.font=Math.round(vw/32)+'px sans-serif';
+  const c=getComputedStyle(document.documentElement).getPropertyValue('--c').trim()||'#5fe3ff';
+  faces.forEach(f=>{g.strokeStyle=g.fillStyle=f.name?c:'#ffb347';const b=f.box;g.strokeRect(b.x,b.y,b.width,b.height);g.fillText((f.name||'Unknown')+(f.fixed?' ':' ~')+f.age,b.x,Math.max(14,b.y-6))});
+  const now=Date.now();
+  faces.forEach(f=>{const k=f.name||'?';if(f.name&&(!lastSeen[k]||now-lastSeen[k]>15000)&&now-lastAlert>6000&&!pending&&!enrolling){lastAlert=now;say('Welcome back, '+f.name+'.')}lastSeen[k]=now});unkRun=faces.some(f=>!f.name)?unkRun+1:0;if(unkRun>=8&&!pending&&!enrolling&&now>snooze&&now-lastAlert>3000){lastAlert=now;unkRun=0;snooze=now+90000;setPending({type:'name'});ask("I don't recognise you. Shall I remember you? If so, tell me your name.")}
+  lastLocal={faces,env};
+  const el=$('lres');el.textContent='';
+  const row=(l,t)=>{const r=document.createElement('div');r.className='vr';const b=document.createElement('b');b.textContent=l;const s=document.createElement('span');s.textContent=t;r.append(b,s);el.appendChild(r)};
+  row('Faces detected',String(faces.length));
+  faces.forEach((f,i)=>{const item=document.createElement('div');item.className='vr person';const label=document.createElement('span');label.textContent='#'+(i+1)+' '+(f.name||'Unknown')+', '+(f.fixed?'age '+f.age:'about '+f.age)+', '+f.ex;const b=document.createElement('button');b.type='button';b.textContent=f.name&&f.name.toLowerCase()==='you'?'Add sample':'This is me';b.onclick=()=>saveAsMe(i);item.append(label,b);el.appendChild(item)});
+  row('Environment',env.light+' ('+env.lum+'/255), '+env.motion+', dominant tone '+env.tone);
+  setTimeout(localLoop,120);
+}
+async function setLocal(on){
+  if(on){
+    if(localOn)return;
+    if(!(await camOn()))return;
+    $('lres').textContent='Loading face models…';
+    try{await loadFA()}catch(e){$('lres').textContent='';say('I could not load the face models, sir. Local vision needs internet the first time and does not run on the published page. Open the downloaded file instead.');return}
+    localOn=true;$('lloc').textContent='Local scan off';$('lloc').classList.add('on');localLoop();
+  }else{
+    localOn=false;$('lloc').textContent='Local scan';$('lloc').classList.remove('on');
+    const ov=$('ov');ov.getContext('2d').clearRect(0,0,ov.width,ov.height);$('lres').textContent='';ageS={};
+  }
+}
+$('lloc').onclick=()=>setLocal(!localOn);
+function bigFace(){return lastLocal&&lastLocal.faces.length?lastLocal.faces.slice().sort((a,b)=>b.box.width-a.box.width)[0]:null}
+let pending=null,pT=0,enrolling=false,unkRun=0,snooze=0,pendAge=null;
+function setPending(p){pending=p;clearTimeout(pT);if(p)pT=setTimeout(()=>{pending=null},60000)}
+function ask(t){askMic=true;say(t)}
+function listenNow(){startListening()}
+function askEnroll(){
+  if(!localOn||!bigFace()){say('Start the local scan and face the camera first, sir.');return}
+  setPending({type:'name'});ask('Of course. What name shall I use for the person closest to the camera?');
+}
+function handlePending(lc){
+  const no=/\b(no|nope|nah|not now|don'?t|do not|skip|cancel|never mind|stop)\b/.test(lc);
+  if(pending.type==='name'){
+    if(no){setPending(null);snooze=Date.now()+120000;say('Very well, sir.');return true}
+    const w=lc.replace(/[.,!?]/g,' ').replace(/\b(yes|yeah|yep|sure|please|ok|okay|my name is|name is|i am|i'm|im|it's|its|call me|this is|you can call me|remember me as|as)\b/g,' ').trim().split(/\s+/).filter(Boolean);
+    if(w.length>3)return false;
+    if(!w.length){ask('Certainly. What name shall I use?');return true}
+    const n=w.join(' ').replace(/\b\w/g,c=>c.toUpperCase());
+    setPending({type:'confirm',name:n});ask(n+', is that right? I will keep your face data on this device only. Say yes to confirm.');return true;
+  }
+  if(pending.type==='confirm'){
+    if(!no&&/\b(yes|yeah|yep|correct|right|confirm|sure|do it|ok|okay)\b/.test(lc)){const nm=pending.name;setPending(null);enroll(nm);return true}
+    if(no){setPending({type:'name'});ask('My mistake. What name shall I use?');return true}
+  }
+  return false;
+}
+async function enroll(name){
+  name=(name||'').trim();if(!name)return;
+  if(!localOn||!bigFace()){say('Start the local scan and face the camera first, sir.');return}
+  enrolling=true;say('I will collect several views. Keep your face in frame and slowly turn from front to your left profile, then your right profile, and back to front.');
+  const s=[];for(let i=0;i<48&&s.length<12;i++){
+    await new Promise(r=>setTimeout(r,300));const f=bigFace();if(!f)continue;
+    const d=Array.from(f.desc);
+    // Keep pose and lighting variation instead of storing many near-identical frames.
+    if(!s.length||Math.min(...s.map(old=>faceapi.euclideanDistance(new Float32Array(old),new Float32Array(d))))>.08)s.push(d);
+  }
+  enrolling=false;
+  if(s.length<3){say('I could not collect enough clear views, sir. Keep your face visible, turn slowly, and try again.');return}
+  const ex=known.find(k=>k.name.toLowerCase()===name.toLowerCase());
+  if(ex)ex.descs=ex.descs.concat(s).slice(-24);else known.push({name,descs:s});
+  if(pendAge){const k=known.find(x=>x.name.toLowerCase()===name.toLowerCase());if(k)k.age=pendAge;pendAge=null}
+  try{localStorage.setItem('jv_faces',JSON.stringify(known))}catch(e){sys('Could not save faces in this browser.')}
+  say('Done. I will recognise '+name+' from now on, sir.');
+}
+function setAge(n){
+  if(n<1||n>120)return 'That does not seem like a plausible age, sir.';
+  const f=localOn&&bigFace();
+  if(f&&f.name){const k=known.find(x=>x.name===f.name);if(k){k.age=n;try{localStorage.setItem('jv_faces',JSON.stringify(known))}catch(e){}return 'Noted, '+f.name+'. You are '+n+'. I will use that instead of my estimate.'}}
+  pendAge=n;
+  return f?'Noted, '+n+'. I will attach it once I know who you are, sir. Say remember me to introduce yourself.':'Noted, '+n+'. I will apply it when I recognise you, sir.';
+}
+function enrollOld(name){
+  name=(name||'').trim();if(!name)return;
+  const f=bigFace();if(!localOn||!f){say('Start the local scan and face the camera first, sir.');return}
+  known=known.filter(k=>k.name.toLowerCase()!==name.toLowerCase());known.push({name,desc:Array.from(f.desc)});
+  try{localStorage.setItem('jv_faces',JSON.stringify(known))}catch(e){sys('Could not save faces in this browser.')}
+  say('Noted. I will recognise '+name+' from now on, sir.');
+}
+$('enr').onclick=askEnroll;
+$('fclr').onclick=()=>{known=[];try{localStorage.removeItem('jv_faces')}catch(e){}say('All saved faces deleted, sir.')};
+async function localSummary(){
+  await setLocal(true);if(!localOn)return;
+  await new Promise(r=>setTimeout(r,1800));
+  const L=lastLocal;if(!L){say('I have no readings yet, sir.');return}
+  const f=L.faces,e=L.env;
+  const p=f.length?'I see '+f.length+' '+(f.length>1?'people':'person')+': '+f.map(x=>(x.name||'an unrecognised person')+', '+(x.fixed?x.age:'roughly '+x.age)+' years old and looking '+x.ex).join('; ')+'.':'I see no one in frame.';
+  say(p+' The room is '+e.light+' with '+e.motion+', and the dominant tone is '+e.tone+', sir.');
+}
+
+/* ---------- reactor canvas ---------- */
+const cv=$('cv'),x=cv.getContext('2d');let ang=0;
+function col(a){const r=getComputedStyle(document.documentElement).getPropertyValue('--c').trim();return r+(a===undefined?'':'')}
+function ring(r,w,a,dash,rot,alpha){x.save();x.rotate(rot);x.strokeStyle=C;x.globalAlpha=alpha;x.lineWidth=w;x.setLineDash(dash);x.beginPath();x.arc(0,0,r,0,Math.PI*2*a);x.stroke();x.restore()}
+let C='#5fe3ff',fc=0,vis=true;
+new IntersectionObserver(e=>vis=e[0].isIntersecting).observe(cv);
+function frame(){
+  if(!vis||document.hidden){requestAnimationFrame(frame);return}fc++;energy+=(target-energy)*.06;
+  const pulse=energy*(.5+.5*Math.sin(performance.now()/90));
+  ang+=.006*speed*(1+energy*2);
+  if(fc%20===1)C=col();x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,560,560);x.save();x.setTransform(.7,0,0,.7,280,280);
+  ring(370,2,1,[2,10],ang*.4,.4);
+  ring(340,5,.92,[],-ang,.7);
+  ring(305,2,1,[40,8,6,8],ang*1.5,.6);
+  ring(260,10,.65,[],ang*2,.5+pulse*.3);
+  ring(255,2,1,[],0,.8);
+  for(let i=0;i<10;i++){x.save();x.rotate(ang*.8+i*Math.PI/5);x.fillStyle=C;x.globalAlpha=.3+pulse*.4;x.fillRect(180,-14,55,28);x.restore()}
+  ring(150,3,1,[],0,.9);
+  x.save();x.rotate(-ang*1.2);x.strokeStyle=C;x.globalAlpha=.7;x.lineWidth=3;x.beginPath();for(let i=0;i<3;i++){const a=i*Math.PI*2/3;x.lineTo(Math.cos(a)*120,Math.sin(a)*120)}x.closePath();x.stroke();x.restore();
+  const g=x.createRadialGradient(0,0,0,0,0,95+pulse*25);g.addColorStop(0,'#fff');g.addColorStop(.25,C);g.addColorStop(1,'transparent');
+  x.globalAlpha=.9;x.fillStyle=g;x.beginPath();x.arc(0,0,95+pulse*25,0,7);x.fill();
+  x.restore();requestAnimationFrame(frame)}
+frame();
+
+setTimeout(()=>sys('Systems online. Type below, or press Mic for voice. Voice replies need a user click first in some browsers.'),400);
+</script></body></html>
+
+
+
